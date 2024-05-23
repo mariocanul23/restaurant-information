@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import database as db
+import tempfile
 import uuid
 import pandas as pd
 import os
@@ -8,7 +9,6 @@ import os
 app = Flask(__name__)
 
 #Rutas de la aplicación
-#Ruta para guardar información de restaurantes en la BD
 @app.route('/create_restaurant', methods=['POST'])
 def create_restaurant():
     try:
@@ -66,7 +66,7 @@ def update_restaurant(id):
         data = (rating, name, site, email, phone, street, city, state, lat, lng, id)
         cursor.execute(sql, data)
         db.database.commit()
-        return jsonify({'message': 'Restaurant created successfully', 'data': data}), 200
+        return jsonify({'message': 'Restaurant updated successfully', 'data': data}), 200
         # return redirect(url_for('home'))
      except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -96,10 +96,14 @@ def import_csv():
     if file and file.filename.endswith('.csv'):
         try:
             # Guarda temporalmente el archivo
-            file_path = os.path.join('/tmp', file.filename)
-            file.save(file_path)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
+                file.save(temp_file.name)
+                file_path = temp_file.name
             
             # Lee el archivo CSV
+            if not os.path.exists(file_path):
+                return jsonify({'error': f'File not found at path: {file_path}'}), 400
+            
             df = pd.read_csv(file_path)
             
             cursor = db.database.cursor()
@@ -116,13 +120,46 @@ def import_csv():
             # Eliminar el archivo temporal
             os.remove(file_path)
             
-            return jsonify({'message': 'Restaurants imported successfully'}), 201
+            return jsonify({'message': 'Restaurants imported successfully'}), 200
         
         except Exception as e:
             return jsonify({'error': str(e)}), 400
     else:
         return jsonify({'error': 'Invalid file format'}), 400
 
+
+@app.route('/restaurants/statistics', methods=['GET'])
+def restaurants_statistics():
+    try:
+        latitude = float(request.args.get('latitude'))
+        longitude = float(request.args.get('longitude'))
+        radius = float(request.args.get('radius'))
+
+        cursor = db.database.cursor(dictionary=True)
+        sql =  """
+                SELECT COUNT(*) AS count, 
+                    AVG(rating) AS avg, 
+                    STDDEV(rating) AS std 
+                FROM restaurants 
+                WHERE ST_Distance_Sphere(
+                    geom, 
+                    ST_GeomFromText('POINT(%s %s)')
+                ) <= %s
+            """
+        data = (longitude, latitude, radius)
+    
+        cursor.execute(sql, data)
+        result = cursor.fetchone()
+        
+        cursor.close()
+
+        return jsonify({
+            'count': result['count'],
+            'avg': result['avg'],
+            'std': result['std']
+        })
+    except Exception as err:
+        return jsonify({'error': str(err)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=4000)
