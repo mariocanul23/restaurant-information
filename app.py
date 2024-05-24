@@ -83,7 +83,7 @@ def delete_restaurant(id):
     except Exception as err:
         return jsonify({'error': str(err)}), 400
 
-@app.route('/import_csv', methods=['POST'])
+@app.route('/import_restaurant', methods=['POST'])
 def import_csv():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
