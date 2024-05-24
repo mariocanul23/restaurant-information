@@ -9,5 +9,5 @@ El proyecto es un CRUD básico el cual cuenta con las siguientes URL para las pe
 - /read_restaurant: Permite leer toda la lista de restaurantes agregados en la BD.
 - /update_restaurant/{id}: Permite actualizar la información de un restaurante por medio de la id.
 - /delete_restaurant/{id}: Permite eliminar algún restaurante por meedio de la id.
--/import_restaurant: Permite importar desde un archivo con extensión .csv la información de los restaurantes.
--/restaurants/statistics?latitude=x&longitude=y&radius=z: Permite encontrar los restaurantes desde una geolocalización.
+- /import_restaurant: Permite importar desde un archivo con extensión .csv la información de los restaurantes.
+- /restaurants/statistics?latitude=x&longitude=y&radius=z: Permite encontrar los restaurantes desde una geolocalización.
